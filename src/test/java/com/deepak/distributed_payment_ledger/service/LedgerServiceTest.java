@@ -37,7 +37,4 @@ public class LedgerServiceTest {
         assertEquals(1L, l);
     }
 
-    @Test
-    public void testFetch() {}
-
 }
