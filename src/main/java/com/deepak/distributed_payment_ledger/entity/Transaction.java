@@ -25,6 +25,11 @@ public class Transaction {
     @Enumerated(EnumType.STRING)
     private TransactionEnum status;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void createdOn() {
+        this.createdAt = LocalDateTime.now();
+    }
 }

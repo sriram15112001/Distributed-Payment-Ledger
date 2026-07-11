@@ -15,10 +15,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class LedgerServiceTest {
+public class AccountServiceTest {
 
     @InjectMocks
-    public LedgerService ledgerService;
+    public AccountService ledgerService;
 
     @Mock
     public AccountRepository accountRepository;
