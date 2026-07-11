@@ -25,4 +25,9 @@ public class Account {
     private String currency;
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void createdOn() {
+        this.createdAt = LocalDateTime.now();
+    }
 }
