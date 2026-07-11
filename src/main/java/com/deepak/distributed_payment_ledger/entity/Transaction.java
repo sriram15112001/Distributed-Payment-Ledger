@@ -18,8 +18,13 @@ import java.time.LocalDateTime;
 public class Transaction {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "transaction_id")
+    @Column(name = "id")
     private Long transactionId;
+
+    @Column(name = "status", nullable = false)
+    @Enumerated(EnumType.STRING)
     private TransactionEnum status;
+
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 }

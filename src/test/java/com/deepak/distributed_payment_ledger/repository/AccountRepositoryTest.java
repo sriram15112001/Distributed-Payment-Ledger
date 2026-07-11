@@ -14,6 +14,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -23,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers
-public class LedgerRepositoryTest {
+public class AccountRepositoryTest {
 
     @Container
     static PostgreSQLContainer postgreSQLContainer = new PostgreSQLContainer(DockerImageName.parse("postgres:17"));
@@ -43,7 +44,7 @@ public class LedgerRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        jdbcTemplate.execute("TRUNCATE TABLE accounts RESTART IDENTITY CASCADE");
+        jdbcTemplate.execute("TRUNCATE TABLE accounts, transactions, ledger_entry RESTART IDENTITY CASCADE");
     }
 
     @Test
@@ -69,5 +70,30 @@ public class LedgerRepositoryTest {
         Account acc = byId.orElse(null);
         assertEquals("deepak", acc.getOwnerName());
         assertEquals("INR", acc.getCurrency());
+    }
+
+    @Test
+    void testAccountBalance() {
+        Account alice = Account.builder().ownerName("alice").currency("INR").createdAt(LocalDateTime.now()).build();
+        Account bob = Account.builder().ownerName("bob").currency("INR").createdAt(LocalDateTime.now()).build();
+
+        alice = accountRepository.save(alice);
+        bob = accountRepository.save(bob);
+
+        jdbcTemplate.update("INSERT INTO transactions (status, created_at) values (?, ?)", "COMPLETED", LocalDateTime.now());
+
+        LocalDateTime now = LocalDateTime.now();
+        jdbcTemplate.update("""
+            INSERT INTO ledger_entry (transaction_id, account_id, direction, amount, currency, created_at)
+            VALUES (1, ?, 'CREDIT', 100.00, 'INR', ?), (1, ?, 'DEBIT', 100.00, 'INR', ?)
+            """, bob.getId(), now, alice.getId(), now);
+
+        BigDecimal aliceBalance = accountRepository.accountBalance(alice.getId());
+        BigDecimal bobBalance = accountRepository.accountBalance(bob.getId());
+
+        assertEquals(0, aliceBalance.compareTo(new BigDecimal("-100.0000")));
+        assertEquals(0, bobBalance.compareTo(new BigDecimal("100.0000")));
+
+
     }
 }
