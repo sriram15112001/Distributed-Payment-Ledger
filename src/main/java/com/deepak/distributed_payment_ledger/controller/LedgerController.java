@@ -1,6 +1,9 @@
 package com.deepak.distributed_payment_ledger.controller;
 
 import com.deepak.distributed_payment_ledger.dto.TransferRequest;
+import com.deepak.distributed_payment_ledger.exception.AccountNotFound;
+import com.deepak.distributed_payment_ledger.exception.InsufficientBalance;
+import com.deepak.distributed_payment_ledger.exception.InvalidAmount;
 import com.deepak.distributed_payment_ledger.service.AccountService;
 import com.deepak.distributed_payment_ledger.service.LedgerService;
 
@@ -25,7 +28,7 @@ public class LedgerController {
     }
 
     @PostMapping("/transactions")
-    public ResponseEntity<Void> transaction(@RequestBody TransferRequest transferRequest) {
+    public ResponseEntity<Void> transaction(@RequestBody TransferRequest transferRequest) throws InsufficientBalance, AccountNotFound, InvalidAmount {
         ledgerService.transfer(transferRequest);
         return ResponseEntity.ok(null);
     }

@@ -6,6 +6,10 @@ import com.deepak.distributed_payment_ledger.entity.LedgerEntry;
 import com.deepak.distributed_payment_ledger.entity.Transaction;
 import com.deepak.distributed_payment_ledger.enums.LedgerDirection;
 import com.deepak.distributed_payment_ledger.enums.TransactionEnum;
+import com.deepak.distributed_payment_ledger.exception.AccountNotFound;
+import com.deepak.distributed_payment_ledger.exception.InsufficientBalance;
+import com.deepak.distributed_payment_ledger.exception.InvalidAmount;
+import com.deepak.distributed_payment_ledger.exception.SameAccountTransaction;
 import com.deepak.distributed_payment_ledger.repository.AccountRepository;
 import com.deepak.distributed_payment_ledger.repository.LedgerEntryRepository;
 import com.deepak.distributed_payment_ledger.repository.TransactionRepository;
@@ -13,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,7 +29,10 @@ public class LedgerService {
     private final LedgerEntryRepository ledgerEntryRepository;
 
     @Transactional
-    public boolean transfer(TransferRequest transferRequest) {
+    public void transfer(TransferRequest transferRequest) {
+        if (transferRequest.amount().compareTo(BigDecimal.ZERO) <= 0) throw new InvalidAmount(transferRequest.amount());
+        if (transferRequest.fromAccountId().equals(transferRequest.toAccountId())) throw new SameAccountTransaction(transferRequest.fromAccountId());
+
         Transaction transaction = transactionRepository.save(
                 Transaction.builder()
                         .status(TransactionEnum.PENDING)
@@ -35,10 +43,14 @@ public class LedgerService {
         Optional<Account> toAccount = accountRepository.findById(transferRequest.toAccountId());
 
         if (fromAccount.isEmpty() || toAccount.isEmpty()) {
-            transaction.setStatus(TransactionEnum.FAILED);
-            transactionRepository.save(transaction);
-            return false;
+            if (fromAccount.isEmpty()) throw new AccountNotFound(transferRequest.fromAccountId());
+            throw new AccountNotFound(transferRequest.toAccountId());
         }
+
+        Account senderAccount = fromAccount.get();
+        Account receiverAccount = toAccount.get();
+
+        if (accountRepository.accountBalance(senderAccount.getId()).compareTo(transferRequest.amount()) < 0) throw new InsufficientBalance(senderAccount.getId());
 
         LedgerEntry ledgerFromAccount = LedgerEntry.builder()
                 .accountId(fromAccount.get())
@@ -61,8 +73,6 @@ public class LedgerService {
         transaction.setStatus(TransactionEnum.COMPLETED);
 
         transactionRepository.save(transaction);
-        return true;
-
     }
 
 }
