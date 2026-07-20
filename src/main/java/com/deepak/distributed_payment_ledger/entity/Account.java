@@ -30,4 +30,8 @@ public class Account {
     protected void createdOn() {
         this.createdAt = LocalDateTime.now();
     }
+
+    @Version
+    @Column(name = "version")
+    private Long version;
 }

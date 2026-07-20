@@ -21,6 +21,9 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -157,5 +160,27 @@ public class LedgerServiceTest {
                 "SELECT COUNT(*) FROM transactions", Long.class);
 
         assertEquals(transactionCountBefore, transactionCountAfter);
+    }
+
+    @Test
+    void concurrentTransactionsTest() throws InterruptedException {
+        int times = 20;
+        ExecutorService service = Executors.newFixedThreadPool(times);
+        CountDownLatch countDownLatch = new CountDownLatch(times);
+        TransferRequest tr = new TransferRequest(1L, 2L, "INR", BigDecimal.valueOf(10));
+        for(int i = 0; i < times; i++) {
+            service.submit(() -> {
+                ledgerService.transfer(tr);
+                countDownLatch.countDown();
+            });
+        }
+
+        countDownLatch.await();
+        BigDecimal aliceBalance = accountRepository.accountBalance(1L);
+        BigDecimal bobBalance = accountRepository.accountBalance(2L);
+
+        assertEquals(new BigDecimal("0.0000"), aliceBalance);
+        assertEquals(new BigDecimal("200.0000"), bobBalance);
+
     }
 }

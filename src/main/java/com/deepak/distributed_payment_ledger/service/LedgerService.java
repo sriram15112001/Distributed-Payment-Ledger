@@ -13,7 +13,9 @@ import com.deepak.distributed_payment_ledger.exception.SameAccountTransaction;
 import com.deepak.distributed_payment_ledger.repository.AccountRepository;
 import com.deepak.distributed_payment_ledger.repository.LedgerEntryRepository;
 import com.deepak.distributed_payment_ledger.repository.TransactionRepository;
+import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +23,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LedgerService {
@@ -39,8 +42,8 @@ public class LedgerService {
                         .build()
         );
 
-        Optional<Account> fromAccount = accountRepository.findById(transferRequest.fromAccountId());
-        Optional<Account> toAccount = accountRepository.findById(transferRequest.toAccountId());
+        Optional<Account> fromAccount = accountRepository.findByIdForUpdate(transferRequest.fromAccountId());
+        Optional<Account> toAccount = accountRepository.findByIdForUpdate(transferRequest.toAccountId());
 
         if (fromAccount.isEmpty() || toAccount.isEmpty()) {
             if (fromAccount.isEmpty()) throw new AccountNotFound(transferRequest.fromAccountId());
